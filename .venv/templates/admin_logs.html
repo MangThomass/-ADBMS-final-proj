@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .admin-container {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        padding: 20px;
+    }
+    .log-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .log-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .log-table th {
+        background-color: #333;
+        color: white;
+        text-align: left;
+        padding: 12px;
+    }
+    .log-table td {
+        padding: 12px;
+        border-bottom: 1px solid #ddd;
+    }
+    .log-table tr:hover {
+        background-color: #f9f9f9;
+    }
+    /* Status Coloring */
+    .status-pill {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: bold;
+    }
+    .status-pending { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .status-preparing { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    .status-ready { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    
+    .timestamp {
+        color: #666;
+        font-size: 0.9em;
+    }
+    .back-link {
+        text-decoration: none;
+        color: #007bff;
+        font-weight: bold;
+    }
+    .back-link:hover { text-decoration: underline; }
+</style>
+
+<div class="admin-container">
+    <div class="log-header">
+        <h2>📋 Order History & Logs</h2>
+        <a href="/admin/menu" class="back-link">← Manage Menu</a>
+    </div>
+
+    <table class="log-table">
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Timestamp</th>
+                <th>Status</th>
+                <th>Total Items</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td><strong>#{{ log.id }}</strong></td>
+                <td class="timestamp">{{ log.time.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                <td>
+                    <span class="status-pill status-{{ log.status|lower }}">
+                        {{ log.status }}
+                    </span>
+                </td>
+                <td>
+                    {# This logic assumes you pass a count or items in your query #}
+                    Order processed
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if not logs %}
+    <div style="text-align: center; margin-top: 40px; color: #999;">
+        <p>No orders recorded in the database yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

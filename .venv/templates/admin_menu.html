@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Admin Menu Management</h2>
+
+<form method="POST">
+    <input name="name" placeholder="Name">
+    <input name="price" placeholder="Price">
+
+    <select name="category">
+        {% for c in categories %}
+        <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+    </select>
+
+    <button>Add</button>
+</form>
+
+<form action="/admin/add_item" method="POST">
+    <input name="name" placeholder="Item Name">
+    <input name="price" placeholder="Price">
+    <input name="category" placeholder="Category">
+    <button>Add Item</button>
+</form>
+
+<hr>
+
+<table>
+    <tr>
+        <th>Name</th><th>Price</th><th>Category</th><th>Delete</th>
+    </tr>
+
+    {% for item in items %}
+    <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ item.price }}</td>
+        <td>{{ item.category }}</td>
+        <td><a href="/admin/delete/{{ item.id }}">Delete</a></td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

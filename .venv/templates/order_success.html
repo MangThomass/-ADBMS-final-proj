@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Order Submitted!</h2>
+<p>Your order ID is <strong>{{ order_id }}</strong>.</p>
+<p>Use it to track your order.</p>
+<h2>Order Successful!</h2>
+<p>Your Order ID: {{ order_id }}</p>
+<a href="/track">Track Order</a>
+{% endblock %}

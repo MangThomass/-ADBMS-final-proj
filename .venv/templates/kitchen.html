@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    /* Custom Kitchen CSS */
+    .kitchen-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 20px;
+        color: #333;
+    }
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #eeedee;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .order-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    .order-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        background-color: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .order-id {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #d9534f; /* Reddish theme */
+        margin-bottom: 10px;
+    }
+    .item-list {
+        margin: 10px 0;
+        padding: 0;
+        list-style: none;
+        min-height: 60px;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    .status-pending { background: #f0ad4e; color: white; }
+    .status-preparing { background: #5bc0de; color: white; }
+    
+    .action-links {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+    .btn {
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        text-align: center;
+        flex: 1;
+    }
+    .btn-start { border: 1px solid #5bc0de; color: #5bc0de; }
+    .btn-ready { background: #5cb85c; color: white; }
+    .btn-start:hover { background: #5bc0de; color: white; }
+</style>
+
+<div class="kitchen-container">
+    <div class="header-section">
+        <h2>👨‍🍳 Kitchen Dashboard</h2>
+        <div>Active Orders: {{ orders|length }}</div>
+    </div>
+
+    <div class="order-grid">
+        {% for order in orders %}
+        <div class="order-card">
+            <div class="order-id">Order #{{ order.id }}</div>
+            
+            <div class="status-badge status-{{ order.status|lower }}">
+                {{ order.status }}
+            </div>
+
+            <ul class="item-list">
+                <li>{{ order.items_summary }}</li>
+            </ul>
+
+            <div class="action-links">
+                <a href="/update/{{ order.id }}/Preparing" class="btn btn-start">Start</a>
+                <a href="/update/{{ order.id }}/Ready" class="btn btn-ready">Mark Ready</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not orders %}
+    <div style="text-align: center; margin-top: 50px; color: #888;">
+        <h3>No pending orders.</h3>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

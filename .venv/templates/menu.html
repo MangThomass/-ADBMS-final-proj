@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Menu</h2>
+
+<form action="/submit_order" method="POST">
+<table>
+    <tr>
+        <th>Item</th><th>Price</th><th>Qty</th>
+    </tr>
+
+    {% for item in items %}
+    <td>{{ item.name }} ({{ item.category }})</td>
+    <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ item.price }}</td>
+        <td>
+            <input type="number" name="qty" value="0" min="0">
+            <input type="hidden" name="item" value="{{ item.id }}">
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<br>
+<button type="submit">Submit Order</button>
+</form>
+
+{% endblock %}
