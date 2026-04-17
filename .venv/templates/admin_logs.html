@@ -2,97 +2,58 @@
 {% block content %}
 
 <style>
-    .admin-container {
-        font-family: 'Segoe UI', Arial, sans-serif;
-        padding: 20px;
-    }
-    .log-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    .log-table {
-        width: 100%;
-        border-collapse: collapse;
-        background-color: white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .log-table th {
-        background-color: #333;
-        color: white;
-        text-align: left;
-        padding: 12px;
-    }
-    .log-table td {
-        padding: 12px;
-        border-bottom: 1px solid #ddd;
-    }
-    .log-table tr:hover {
-        background-color: #f9f9f9;
-    }
-    /* Status Coloring */
-    .status-pill {
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.85em;
-        font-weight: bold;
-    }
-    .status-pending { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-    .status-preparing { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-    .status-ready { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .admin-container { max-width: 1000px; margin: 40px auto; font-family: 'Segoe UI', Tahoma, sans-serif; color: #333; }
+    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    .admin-header h2 { margin: 0; }
     
-    .timestamp {
-        color: #666;
-        font-size: 0.9em;
-    }
-    .back-link {
-        text-decoration: none;
-        color: #007bff;
-        font-weight: bold;
-    }
-    .back-link:hover { text-decoration: underline; }
+    /* Table Styling */
+    .admin-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .admin-table th, .admin-table td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+    .admin-table th { background: #eaf5eb; color: #333; font-weight: bold; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }
+    .admin-table tr:hover { background: #fdfdfd; }
+    
+    /* Dynamic Status Badges */
+    .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-preparing { background: #d1ecf1; color: #0c5460; }
+    .status-ready { background: #d4edda; color: #155724; }
+    .status-completed { background: #e2e3e5; color: #383d41; }
+    
+    .record-count { background: #333; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 14px;}
 </style>
 
 <div class="admin-container">
-    <div class="log-header">
-        <h2>📋 Order History & Logs</h2>
-        <a href="/admin/menu" class="back-link">← Manage Menu</a>
+    <div class="admin-header">
+        <h2>📊 Order Logs & History</h2>
+        <div class="record-count">Recent Records: {{ logs|length }}</div>
     </div>
 
-    <table class="log-table">
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>Timestamp</th>
-                <th>Status</th>
-                <th>Total Items</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in logs %}
-            <tr>
-                <td><strong>#{{ log.id }}</strong></td>
-                <td class="timestamp">{{ log.time.strftime('%Y-%m-%d %I:%M %p') }}</td>
-                <td>
-                    <span class="status-pill status-{{ log.status|lower }}">
-                        {{ log.status }}
-                    </span>
-                </td>
-                <td>
-                    {# This logic assumes you pass a count or items in your query #}
-                    Order processed
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+    <table class="admin-table">
+        <tr>
+            <th>Order ID</th>
+            <th>Date & Time</th>
+            <th>Status</th>
+        </tr>
+
+        {% for log in logs %}
+        <tr>
+            <td><strong>#{{ log.id }}</strong></td>
+            
+            <td>{{ log.time.strftime('%b %d, %Y - %I:%M %p') if log.time else 'Time not recorded' }}</td>
+            
+            <td>
+                <span class="status-badge status-{{ log.status|lower }}">{{ log.status }}</span>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="3" style="text-align: center; padding: 40px; color: #888;">
+                <h3>No orders found in the database yet.</h3>
+            </td>
+        </tr>
+        {% endfor %}
+        
     </table>
-
-    {% if not logs %}
-    <div style="text-align: center; margin-top: 40px; color: #999;">
-        <p>No orders recorded in the database yet.</p>
-    </div>
-    {% endif %}
 </div>
 
-{% endblock %}
+{% endblock %}s

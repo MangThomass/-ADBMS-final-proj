@@ -44,22 +44,22 @@ def menu():
 def submit():
     items = request.form.getlist("item")
     qtys = request.form.getlist("qty")
+    details_list = request.form.getlist("details") # Get the new details from JS!
 
     conn = get_db()
     cur = conn.cursor()
 
-    # Create order
     cur.execute("INSERT INTO orders (status, time) VALUES (%s, %s)",
                 ("Pending", datetime.now()))
     order_id = cur.lastrowid
 
-    # Insert order items
-    for item_id, qty in zip(items, qtys):
+    # Zip now includes the details_list
+    for item_id, qty, details in zip(items, qtys, details_list):
         if int(qty) > 0:
             cur.execute("""
-                INSERT INTO order_items (order_id, menu_id, quantity)
-                VALUES (%s, %s, %s)
-            """, (order_id, item_id, qty))
+                INSERT INTO order_items (order_id, menu_id, quantity, details)
+                VALUES (%s, %s, %s, %s)
+            """, (order_id, item_id, qty, details))
 
     conn.commit()
     conn.close()
@@ -81,8 +81,9 @@ def track():
         cur.execute("SELECT * FROM orders WHERE id=%s", (order_id,))
         order = cur.fetchone()
 
+        # Added order_items.details to the SELECT query
         cur.execute("""
-            SELECT menu.name, order_items.quantity
+            SELECT menu.name, order_items.quantity, order_items.details
             FROM order_items
             JOIN menu ON order_items.menu_id = menu.id
             WHERE order_items.order_id=%s
@@ -94,25 +95,28 @@ def track():
     return render_template("track.html", order=order, items=items)
 
 # ---------------- KITCHEN ----------------
-# ---------------- KITCHEN (ENHANCED) ----------------
 @app.route("/kitchen")
 def kitchen():
     conn = get_db()
     cur = conn.cursor(dictionary=True)
 
-    # Fetch orders and join with order_items/menu so staff knows WHAT to prepare
+    # We updated the WHERE clause to hide both 'Ready' and 'Completed' orders
     cur.execute("""
         SELECT o.id, o.status, o.time, 
-               GROUP_CONCAT(CONCAT(m.name, ' x', oi.quantity) SEPARATOR ', ') as items_summary
+               GROUP_CONCAT(
+                   CONCAT('<b>', oi.quantity, 'x ', m.name, '</b><br><span style="font-size:12px;color:#666;">', IFNULL(oi.details, ''), '</span>') 
+                   SEPARATOR '<br><br>'
+               ) as items_summary
         FROM orders o
         JOIN order_items oi ON o.id = oi.order_id
         JOIN menu m ON oi.menu_id = m.id
-        WHERE o.status != 'Completed'
+        WHERE o.status NOT IN ('Ready', 'Completed')
         GROUP BY o.id
         ORDER BY o.time ASC
     """)
     orders = cur.fetchall()
     conn.close()
+    
     return render_template("kitchen.html", orders=orders)
 
 # ---------------- UPDATE STATUS ----------------
@@ -145,7 +149,12 @@ def admin_menu():
         """, (name, price, category_id))
         conn.commit()
 
-    cur.execute("SELECT * FROM menu")
+    # 🟢 UPDATED: Joined categories so the name shows up in the admin table
+    cur.execute("""
+        SELECT menu.*, categories.name AS category_name 
+        FROM menu 
+        LEFT JOIN categories ON menu.category_id = categories.id
+    """)
     items = cur.fetchall()
 
     cur.execute("SELECT * FROM categories")

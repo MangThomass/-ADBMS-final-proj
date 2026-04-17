@@ -1,92 +1,52 @@
 {% extends "base.html" %}
 {% block content %}
-
 <style>
-    /* Custom Kitchen CSS */
-    .kitchen-container {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        padding: 20px;
-        color: #333;
-    }
-    .header-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 2px solid #eeedee;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-    }
-    .order-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 20px;
-    }
-    .order-card {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        background-color: #fff;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .order-id {
-        font-size: 1.2em;
-        font-weight: bold;
-        color: #d9534f; /* Reddish theme */
-        margin-bottom: 10px;
-    }
-    .item-list {
-        margin: 10px 0;
-        padding: 0;
-        list-style: none;
-        min-height: 60px;
-    }
-    .status-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.85em;
-        font-weight: bold;
-        text-transform: uppercase;
-    }
-    .status-pending { background: #f0ad4e; color: white; }
-    .status-preparing { background: #5bc0de; color: white; }
+    .kitchen-container { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eaf5eb; padding-bottom: 15px; margin-bottom: 30px; }
+    .header-section h2 { margin: 0; color: #333; }
+    .active-count { background: #333; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; }
+    .order-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
     
-    .action-links {
-        margin-top: 15px;
-        display: flex;
-        gap: 10px;
-    }
-    .btn {
-        text-decoration: none;
-        padding: 8px 12px;
-        border-radius: 4px;
-        font-size: 0.9em;
-        text-align: center;
-        flex: 1;
-    }
-    .btn-start { border: 1px solid #5bc0de; color: #5bc0de; }
-    .btn-ready { background: #5cb85c; color: white; }
+    .order-card { border-radius: 12px; padding: 20px; background-color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 5px solid #333; }
+    .order-card.pending { border-top-color: #f0ad4e; }
+    .order-card.preparing { border-top-color: #5bc0de; }
+    
+    .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .order-id { font-size: 1.4em; font-weight: bold; color: #333; margin: 0; }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.85em; font-weight: bold; text-transform: uppercase; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-preparing { background: #d1ecf1; color: #0c5460; }
+    
+    .item-list { margin: 15px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; min-height: 60px; line-height: 1.6; font-size: 15px; border: 1px solid #eee;}
+    
+    .action-links { margin-top: 20px; display: flex; gap: 10px; }
+    .btn { text-decoration: none; padding: 10px 15px; border-radius: 8px; font-size: 0.95em; font-weight: bold; text-align: center; flex: 1; transition: 0.2s; cursor: pointer;}
+    .btn-start { border: 2px solid #5bc0de; color: #5bc0de; background: transparent; }
     .btn-start:hover { background: #5bc0de; color: white; }
+    .btn-ready { background: #4CAF50; color: white; border: 2px solid #4CAF50; }
+    .btn-ready:hover { background: #45a049; border-color: #45a049;}
+    
+    .empty-state { text-align: center; margin-top: 80px; color: #888; font-size: 1.2em; background: #fff; padding: 40px; border-radius: 12px; }
 </style>
 
 <div class="kitchen-container">
     <div class="header-section">
         <h2>👨‍🍳 Kitchen Dashboard</h2>
-        <div>Active Orders: {{ orders|length }}</div>
+        <div class="active-count">Active Orders: {{ orders|length }}</div>
     </div>
 
     <div class="order-grid">
         {% for order in orders %}
-        <div class="order-card">
-            <div class="order-id">Order #{{ order.id }}</div>
-            
-            <div class="status-badge status-{{ order.status|lower }}">
-                {{ order.status }}
+        <div class="order-card {{ order.status|lower }}">
+            <div class="order-header">
+                <div class="order-id">Order #{{ order.id }}</div>
+                <div class="status-badge status-{{ order.status|lower }}">{{ order.status }}</div>
             </div>
 
-            <ul class="item-list">
-                <li>{{ order.items_summary }}</li>
-            </ul>
+            <div class="item-list">
+    <strong>Items:</strong><br>
+    {{ order.items_summary | safe }}
+</div>
 
             <div class="action-links">
                 <a href="/update/{{ order.id }}/Preparing" class="btn btn-start">Start</a>
@@ -97,10 +57,9 @@
     </div>
 
     {% if not orders %}
-    <div style="text-align: center; margin-top: 50px; color: #888;">
-        <h3>No pending orders.</h3>
+    <div class="empty-state">
+        <h3>🍽️ Kitchen is clear. No pending orders right now.</h3>
     </div>
     {% endif %}
 </div>
-
 {% endblock %}

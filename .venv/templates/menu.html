@@ -1,29 +1,309 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Menu</h2>
+<style>
+    /* Fix the broken navigation links at the top */
+    nav, .top-nav { margin-bottom: 30px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+    nav a, .top-nav a { text-decoration: none; color: #333; font-weight: bold; margin-right: 15px; font-family: sans-serif;}
+    nav a:hover, .top-nav a:hover { color: #4CAF50; }
 
-<form action="/submit_order" method="POST">
-<table>
-    <tr>
-        <th>Item</th><th>Price</th><th>Qty</th>
-    </tr>
+    /* 3-Column Layout */
+    .menu-wrapper { display: flex; font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; max-width: 1400px; margin: 0 auto; gap: 20px; color: #333;}
+    
+    /* Left Sidebar - Categories */
+    .sidebar { width: 200px; padding: 20px 0; }
+    .sidebar h2 { font-size: 32px; margin-bottom: 20px; }
+    .sidebar ul { list-style: none; padding: 0; margin: 0; }
+    .sidebar li { font-size: 16px; font-weight: 600; margin-bottom: 20px; cursor: pointer; color: #777; transition: 0.2s; display: block; width: fit-content; }
+    .sidebar li.active, .sidebar li:hover { color: #000; border-bottom: 2px solid #333; padding-bottom: 5px; }
 
-    {% for item in items %}
-    <td>{{ item.name }} ({{ item.category }})</td>
-    <tr>
-        <td>{{ item.name }}</td>
-        <td>{{ item.price }}</td>
-        <td>
-            <input type="number" name="qty" value="0" min="0">
-            <input type="hidden" name="item" value="{{ item.id }}">
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+    /* Middle - Menu Grid */
+    .main-content { flex: 1; background-color: #eaf5eb; border-radius: 20px; padding: 30px; min-height: 80vh; }
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 30px; }
+    .menu-card { text-align: center; cursor: pointer; transition: transform 0.2s; background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .menu-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+    .menu-card img { width: 100%; max-width: 120px; border-radius: 50%; margin-bottom: 15px; }
+    .menu-card h4 { margin: 0 0 10px 0; font-size: 15px; }
+    .menu-card p { margin: 0; color: #4CAF50; font-weight: bold; }
 
-<br>
-<button type="submit">Submit Order</button>
-</form>
+    /* Right Sidebar - Active Cart */
+    .cart-sidebar { width: 300px; background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+    .cart-sidebar h3 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    #cart-items { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+    .cart-item-details { flex: 1; }
+    .cart-item-title { font-weight: bold; margin-bottom: 4px; }
+    .cart-item-extras { font-size: 12px; color: #666; margin-top: 4px; line-height: 1.4; }
+    .remove-btn { color: red; cursor: pointer; border: none; background: none; font-size: 18px; font-weight: bold; }
+    
+    .cart-footer { margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px; }
+    .cart-total { display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+    .add-to-cart-btn { width: 100%; padding: 15px; background-color: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .add-to-cart-btn:hover { background-color: #45a049; }
 
+    /* Modal Styling */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+    .modal-content { background-color: #fff; margin: 5% auto; width: 90%; max-width: 420px; border-radius: 12px; padding: 25px; position: relative; font-family: sans-serif;}
+    .close-btn { position: absolute; top: 15px; right: 20px; font-size: 28px; cursor: pointer; color: #888; }
+    .option-group { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+    .option-group-title { font-weight: bold; font-size: 16px; margin-bottom: 12px; }
+    .option-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; color: #333; }
+    .option-row input { margin-left: 10px; transform: scale(1.2); cursor: pointer; }
+</style>
+
+<div class="menu-wrapper">
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <ul id="category-list">
+            <li class="active" onclick="filterMenu('All', this)">All Items</li>
+            <li onclick="filterMenu('Rice Meal', this)">Rice Meal</li>
+            <li onclick="filterMenu('Bundles', this)">Bundles</li>
+            <li onclick="filterMenu('Sides', this)">Sides</li>
+            <li onclick="filterMenu('Drinks', this)">Drinks</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="menu-grid" id="menu-grid">
+            {% for item in items %}
+            <div class="menu-card" 
+                 data-category="{{ item.category }}"
+                 data-id="{{ item.id }}" 
+                 data-name="{{ item.name }}" 
+                 data-price="{{ item.price|default(0) }}" 
+                 onclick="openModal(this.dataset.name, this.dataset.price, this.dataset.id, this.dataset.category)">
+                 
+                <img src="https://ui-avatars.com/api/?name={{ item.name }}&background=4CAF50&color=fff&size=150&rounded=true" alt="{{ item.name }}">
+                <h4>{{ item.name }}</h4>
+                <p>₱{{ "%.2f"|format(item.price) }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="cart-sidebar">
+        <h3>🛒 Your Order</h3>
+        <ul id="cart-items">
+            <li style="color: #888; text-align: center; margin-top: 20px;">Cart is empty</li>
+        </ul>
+
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>Total:</span>
+                <span>₱<span id="cart-total-price">0.00</span></span>
+            </div>
+            <form action="/submit" method="POST" id="main-order-form" onsubmit="return validateAndSubmitOrder()">
+                <div id="hidden-inputs-container"></div>
+                <button type="submit" class="add-to-cart-btn" style="background-color: #333;">Submit Order</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="itemModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h3 id="modal-title" style="text-align: center; margin-bottom: 20px;">Item Name</h3>
+        
+        <input type="hidden" id="modal-base-price">
+        <input type="hidden" id="modal-item-id">
+        <input type="hidden" id="modal-item-category">
+
+        <div id="modal-extras">
+            <div class="option-group">
+                <div class="option-group-title">Variation <span style="color: #888; font-style: italic; font-weight: normal; font-size: 12px; float: right;">Required</span></div>
+                <div class="option-row"><label>Solo</label><div><span id="label-price-solo"></span> <input type="radio" name="variation" value="Solo" checked onchange="calculateModalTotal()"></div></div>
+                <div class="option-row"><label>With Drink</label><div><span id="label-price-drink"></span> <input type="radio" name="variation" value="With Drink" onchange="calculateModalTotal()"></div></div>
+            </div>
+
+            <div class="option-group" id="drink-section">
+                <div class="option-group-title">Drink Option <span style="color: #888; font-style: italic; font-weight: normal; font-size: 12px; float: right;">Required if combo</span></div>
+                <div class="option-row"><label>Iced Gulaman 12oz</label><div><span>Free</span> <input type="radio" name="drink" value="Iced Gulaman" checked></div></div>
+                <div class="option-row"><label>Iced Tea 12oz</label><div><span>Free</span> <input type="radio" name="drink" value="Iced Tea"></div></div>
+                <div class="option-row"><label>Coke 12oz</label><div><span>Free</span> <input type="radio" name="drink" value="Coke"></div></div>
+                <div class="option-row"><label>Sprite 12oz</label><div><span>Free</span> <input type="radio" name="drink" value="Sprite"></div></div>
+                <div class="option-row"><label>Coke Zero 12oz</label><div><span>Free</span> <input type="radio" name="drink" value="Coke Zero"></div></div>
+            </div>
+
+            <div class="option-group">
+                <div class="option-group-title">Add ons <span style="color: #888; font-style: italic; font-weight: normal; font-size: 12px; float: right;">Optional</span></div>
+                <div class="option-row"><label>1 extra ice-cream sundae</label><div><span>₱50.00</span> <input type="checkbox" class="addon-cb" value="Sundae" data-price="50" onchange="calculateModalTotal()"></div></div>
+                <div class="option-row"><label>3 pcs Lumpiang Gulay</label><div><span>₱105.00</span> <input type="checkbox" class="addon-cb" value="Lumpia" data-price="105" onchange="calculateModalTotal()"></div></div>
+                <div class="option-row"><label>1 extra rice</label><div><span>₱30.00</span> <input type="checkbox" class="addon-cb" value="Extra Rice" data-price="30" onchange="calculateModalTotal()"></div></div>
+            </div>
+        </div>
+
+        <div style="margin: 20px 0; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #eee; padding-top: 15px;">
+            <label style="font-weight: bold; font-size: 18px;">Quantity</label>
+            <input type="number" id="modal-qty" value="1" min="1" style="width: 80px; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; text-align: center;" onchange="calculateModalTotal()">
+        </div>
+
+        <button type="button" class="add-to-cart-btn" onclick="addToCart()" id="modal-add-btn">Add to Cart - ₱0.00</button>
+    </div>
+</div>
+
+<script>
+    let cart = [];
+    const modal = document.getElementById("itemModal");
+
+    function filterMenu(categoryName, clickedElement) {
+        document.querySelectorAll('#category-list li').forEach(li => li.classList.remove('active'));
+        clickedElement.classList.add('active');
+
+        document.querySelectorAll('.menu-card').forEach(card => {
+            if (categoryName === 'All' || card.getAttribute('data-category') === categoryName) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function openModal(itemName, itemPrice, itemId, itemCategory) {
+        document.getElementById("modal-title").innerText = itemName;
+        document.getElementById("modal-item-id").value = itemId; 
+        document.getElementById("modal-base-price").value = itemPrice;
+        document.getElementById("modal-item-category").value = itemCategory || "None";
+        document.getElementById("modal-qty").value = 1; 
+        
+        let basePrice = parseFloat(itemPrice);
+        const extrasDiv = document.getElementById("modal-extras");
+
+        if (itemCategory === 'Rice Meal' || itemCategory === 'Bundles') {
+            extrasDiv.style.display = "block"; 
+            document.getElementById("label-price-solo").innerText = "₱" + basePrice.toFixed(2);
+            document.getElementById("label-price-drink").innerText = "₱" + (basePrice + 10).toFixed(2);
+            document.querySelector('input[name="variation"][value="Solo"]').checked = true;
+            document.querySelector('input[name="drink"][value="Iced Gulaman"]').checked = true;
+            document.querySelectorAll('.addon-cb').forEach(cb => cb.checked = false);
+        } else {
+            extrasDiv.style.display = "none";
+        }
+
+        calculateModalTotal(); 
+        modal.style.display = "block";
+    }
+
+    function closeModal() { modal.style.display = "none"; }
+    window.onclick = function(event) { if (event.target == modal) { closeModal(); } }
+
+    function calculateModalTotal() {
+        let basePrice = parseFloat(document.getElementById("modal-base-price").value) || 0;
+        let qty = parseInt(document.getElementById("modal-qty").value) || 1;
+        let category = document.getElementById("modal-item-category").value;
+        let totalItemPrice = basePrice;
+
+        if (category === 'Rice Meal' || category === 'Bundles') {
+            let variation = document.querySelector('input[name="variation"]:checked').value;
+            let drinkSection = document.getElementById("drink-section");
+
+            if (variation === "With Drink") { 
+                totalItemPrice += 10; 
+                drinkSection.style.opacity = "1";
+                drinkSection.style.pointerEvents = "auto";
+            } else {
+                drinkSection.style.opacity = "0.4";
+                drinkSection.style.pointerEvents = "none";
+            }
+
+            document.querySelectorAll('.addon-cb:checked').forEach(cb => {
+                totalItemPrice += parseFloat(cb.getAttribute("data-price"));
+            });
+        }
+
+        let finalTotal = totalItemPrice * qty;
+        document.getElementById("modal-add-btn").innerText = "Add to Cart - ₱" + finalTotal.toFixed(2);
+        modal.dataset.calculatedUnitPrice = totalItemPrice; 
+    }
+
+    function addToCart() {
+        try {
+            const id = document.getElementById("modal-item-id").value;
+            const name = document.getElementById("modal-title").innerText;
+            const qty = parseInt(document.getElementById("modal-qty").value) || 1;
+            const unitPrice = parseFloat(modal.dataset.calculatedUnitPrice) || 0;
+            const category = document.getElementById("modal-item-category").value;
+
+            let extraText = "";
+
+            if (category === 'Rice Meal' || category === 'Bundles') {
+                const variationEl = document.querySelector('input[name="variation"]:checked');
+                if (variationEl) {
+                    const variation = variationEl.value;
+                    extraText = `[${variation}]`;
+                    if (variation === "With Drink") {
+                        const drinkEl = document.querySelector('input[name="drink"]:checked');
+                        if (drinkEl) extraText += ` (${drinkEl.value})`;
+                    }
+                }
+                let addons = [];
+                document.querySelectorAll('.addon-cb:checked').forEach(cb => addons.push(cb.value));
+                if (addons.length > 0) extraText += `<br>+ ${addons.join(", ")}`;
+            }
+
+            const cartKey = id + "_" + extraText;
+            const existingItem = cart.find(item => item.cartKey === cartKey);
+            
+            if (existingItem) {
+                existingItem.qty += qty;
+            } else {
+                cart.push({ id: id, cartKey: cartKey, name: name, price: unitPrice, qty: qty, extras: extraText });
+            }
+
+            renderCart();
+            closeModal();
+        } catch (e) {
+            console.error("Cart Error:", e);
+            alert("Error adding to cart. Please try again.");
+        }
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+
+    function renderCart() {
+        const cartList = document.getElementById("cart-items");
+        const totalDisplay = document.getElementById("cart-total-price");
+        cartList.innerHTML = ""; 
+        let total = 0;
+
+        if (cart.length === 0) {
+            cartList.innerHTML = '<li style="color: #888; text-align: center; margin-top: 20px;">Cart is empty</li>';
+        } else {
+            cart.forEach((item, index) => {
+                let itemTotal = item.price * item.qty;
+                total += itemTotal;
+                cartList.innerHTML += `
+                    <li class="cart-item">
+                        <div class="cart-item-details">
+                            <div class="cart-item-title">${item.name}</div>
+                            <div class="cart-item-extras">${item.extras}</div>
+                            <div style="color: #4CAF50; font-weight: bold; margin-top: 4px;">₱${item.price.toFixed(2)} x ${item.qty}</div>
+                        </div>
+                        <div style="font-weight: bold; margin-right: 10px; font-size: 16px;">₱${itemTotal.toFixed(2)}</div>
+                        <button type="button" class="remove-btn" onclick="removeFromCart(${index})">&times;</button>
+                    </li>
+                `;
+            });
+        }
+        totalDisplay.innerText = total.toFixed(2);
+    }
+
+    function validateAndSubmitOrder() {
+        if (cart.length === 0) {
+            alert("Your cart is empty! Please add some items first.");
+            return false; 
+        }
+        const container = document.getElementById("hidden-inputs-container");
+        container.innerHTML = ""; 
+        cart.forEach(item => {
+            container.innerHTML += `<input type="hidden" name="item" value="${item.id}">`;
+            container.innerHTML += `<input type="hidden" name="qty" value="${item.qty}">`;
+            container.innerHTML += `<input type="hidden" name="details" value="${item.extras}">`;
+        });
+        return true; 
+    }
+</script>
 {% endblock %}
